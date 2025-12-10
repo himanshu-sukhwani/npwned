@@ -13,7 +13,20 @@ export function generateReport(dependencies, results, options = {}) {
 
     const table = new Table({
         head: headers,
-        style: { head: ['cyan'] }
+        style: { head: ['cyan'] },
+        wordWrap: true,
+        // Optional: define column widths relative to user's terminal or fixed?
+        // Let's rely on wordWrap but maybe set some widths to force wrapping?
+        // cli-table3 auto-size if not specified, but wrapping needs explicit width or it might just expand?
+        // Actually, wordWrap works best when there is a constrained width.
+        // Let's set some reasonable defaults for a standard simplified view.
+        // Or better, let's just let it auto-size but truncate/wrap content manually if needed?
+        // No, cli-table3 `wordWrap: true` wraps content into new lines if it exceeds the column width.
+        // But what defines column width?
+        // Let's try specifying colWidths to help structure it.
+        // Package: 20, Version: 15, Status: 15, Severity: 15, Patched: 25, Advisory: 30
+        // Total ~ 120 chars, fits in most terminals.
+        colWidths: isDeep ? [20, 15, 15, 15, 25, 30] : [25, 20, 20, 45]
     });
 
     const depNames = Object.keys(dependencies);
@@ -26,7 +39,10 @@ export function generateReport(dependencies, results, options = {}) {
 
             if (result && result.vulns && result.vulns.length > 0) {
                 vulnerabilityCount++;
-                const ids = result.vulns.map(v => v.id).join(', ');
+                // ID calculation logic moved down to handle both modes consistent formatting?
+                // Actually, `ids` variable was defined at top of loop. Let's change it there for non-deep mode too or just remove the early definition.
+                // It was: const ids = result.vulns.map(v => v.id).join(', ');
+                // Let's defer it.
 
                 const row = [
                     chalk.red(pkgName),
@@ -47,7 +63,7 @@ export function generateReport(dependencies, results, options = {}) {
                     }).filter(Boolean);
 
                     if (severities.length > 0) {
-                        maxSeverity = severities.join(', '); // Show all for now or optimize?
+                        maxSeverity = severities.join('\n'); // Stack vertically
                     }
 
                     row.push(chalk.yellow(maxSeverity));
@@ -71,10 +87,12 @@ export function generateReport(dependencies, results, options = {}) {
                             });
                         }
                     });
-                    const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join(', ') : 'N/A';
+                    const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join('\n') : 'N/A';
                     row.push(chalk.green(patchedStr));
                 }
 
+                // Stack IDs vertically too
+                const ids = result.vulns.map(v => v.id).join('\n');
                 row.push(chalk.red(ids));
                 table.push(row);
             }

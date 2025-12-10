@@ -15,7 +15,7 @@ export async function run(options = {}) {
     // Since I am replacing a large chunk in previous thoughts, let's be precise here.
     // I'll replace the function signature and the usage of checkVulnerabilities/generateReport.
 
-    console.log(chalk.bold.blue('npwned - Dependency Vulnerability Checker\n'));
+
 
     const spinner = ora('Scanning for dependency files...').start();
 
