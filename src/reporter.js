@@ -39,34 +39,47 @@ export function generateReport(dependencies, results, options = {}) {
 
             if (result && result.vulns && result.vulns.length > 0) {
                 vulnerabilityCount++;
-                // ID calculation logic moved down to handle both modes consistent formatting?
-                // Actually, `ids` variable was defined at top of loop. Let's change it there for non-deep mode too or just remove the early definition.
-                // It was: const ids = result.vulns.map(v => v.id).join(', ');
-                // Let's defer it.
 
+                // Calculate Severity (Max)
+                let maxSeverity = 'UNKNOWN';
+                const severityLevels = { 'CRITICAL': 4, 'HIGH': 3, 'MODERATE': 2, 'LOW': 1, 'UNKNOWN': 0 };
+                let maxSeverityLevel = 0;
+
+                // Extract severities (Deep or otherwise if available)
+                const severities = result.vulns.map(v => {
+                    if (v.database_specific && v.database_specific.severity) return v.database_specific.severity;
+                    return null;
+                }).filter(Boolean);
+
+                if (severities.length > 0) {
+                    maxSeverity = severities[0];
+                    severities.forEach(s => {
+                        const level = severityLevels[s.toUpperCase()] || 0;
+                        if (level > maxSeverityLevel) {
+                            maxSeverityLevel = level;
+                            maxSeverity = s;
+                        }
+                    });
+                }
+
+                // Determine Row Color
+                let rowColor = chalk.white; // Default
+                if (maxSeverity.toUpperCase() === 'CRITICAL') rowColor = chalk.red;
+                else if (maxSeverity.toUpperCase() === 'HIGH') rowColor = chalk.hex('#FFA500'); // Orange
+                else if (maxSeverity.toUpperCase() === 'MODERATE') rowColor = chalk.magenta; // Pink-ish
+                else if (maxSeverity.toUpperCase() === 'LOW') rowColor = chalk.yellow;
+
+                // Prepare Row Data with Color Applied
                 const row = [
-                    chalk.red(pkgName),
-                    pkgVersion,
-                    chalk.red('VULNERABLE')
+                    rowColor(pkgName),
+                    rowColor(pkgVersion),
+                    rowColor('VULNERABLE')
                 ];
 
                 if (isDeep) {
-                    // Calculate Severity (Max)
-                    let maxSeverity = 'UNKNOWN';
-                    // Simple hack: check for CRITICAL, HIGH, MODERATE, LOW keywords if available
-                    // Or parse CVSS score.
-                    // OSV uses schema: severity: [ { type: 'CVSS_V3', score: '...' } ] or database_specific: { severity: 'MODERATE' }
-
-                    const severities = result.vulns.map(v => {
-                        if (v.database_specific && v.database_specific.severity) return v.database_specific.severity;
-                        return null;
-                    }).filter(Boolean);
-
-                    if (severities.length > 0) {
-                        maxSeverity = severities.join('\n'); // Stack vertically
-                    }
-
-                    row.push(chalk.yellow(maxSeverity));
+                    // Severity Column
+                    let severityDisplay = severities.length > 0 ? severities.join('\n') : 'UNKNOWN';
+                    row.push(rowColor(severityDisplay));
 
                     // Find fixed versions
                     const fixedVersions = new Set();
@@ -88,12 +101,13 @@ export function generateReport(dependencies, results, options = {}) {
                         }
                     });
                     const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join('\n') : 'N/A';
-                    row.push(chalk.green(patchedStr));
+                    row.push(rowColor(patchedStr));
                 }
 
-                // Stack IDs vertically too
+                // Advisory IDs
                 const ids = result.vulns.map(v => v.id).join('\n');
-                row.push(chalk.red(ids));
+                row.push(rowColor(ids));
+
                 table.push(row);
             }
         });
