@@ -26,21 +26,46 @@ Navigate to your project directory (where your `package.json` is located) and ru
 npwned
 ```
 
-### Output Example
+### Options
+
+- `-d, --deep`: Perform a deep scan. Fetches full vulnerability details, including **Severity** and **Patched Versions**. (Slower)
+- `-q, --quick`: Perform a quick scan. Checks for existence of vulnerabilities only. (Default, Faster)
+
+### Output Examples
+
+#### Quick Scan (Default)
+
+```bash
+npwned
+# or
+npwned --quick
+```
 
 ```
-npwned - Dependency Vulnerability Checker
+⚠️  Found 1 vulnerabilities!
+(Run with --deep to see severity and patched versions)
 
-Reading package.json...
-Checking 42 dependencies against OSV database...
+┌──────────┬─────────┬────────────┬─────────────────────┐
+│ Package  │ Version │ Status     │ Advisory            │
+├──────────┼─────────┼────────────┼─────────────────────┤
+│ minimist │ 0.0.8   │ VULNERABLE │ GHSA-vh95-rmgr-6w4m │
+└──────────┴─────────┴────────────┴─────────────────────┘
+```
 
+#### Deep Scan
+
+```bash
+npwned --deep
+```
+
+```
 ⚠️  Found 1 vulnerabilities!
 
-┌─────────┬──────────┬────────────┬─────────────────────┐
-│ Package │ Version  │ Status     │ Advisory            │
-├─────────┼──────────┼────────────┼─────────────────────┤
-│ lodash  │ ^4.17.15 │ VULNERABLE │ GHSA-29mw-wpgm-hmr9 │
-└─────────┴──────────┴────────────┴─────────────────────┘
+┌──────────┬─────────┬────────────┬──────────┬───────────────┬─────────────────────┐
+│ Package  │ Version │ Status     │ Severity │ Patched       │ Advisory            │
+├──────────┼─────────┼────────────┼──────────┼───────────────┼─────────────────────┤
+│ minimist │ 0.0.8   │ VULNERABLE │ HIGH     │ 1.2.6, 0.2.4  │ GHSA-vh95-rmgr-6w4m │
+└──────────┴─────────┴────────────┴──────────┴───────────────┴─────────────────────┘
 ```
 
 ## How it works
