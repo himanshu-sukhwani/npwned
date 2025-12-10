@@ -1,9 +1,18 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
-export function generateReport(dependencies, results) {
+export function generateReport(dependencies, results, options = {}) {
+    const isDeep = options.deep;
+
+    const headers = ['Package', 'Version', 'Status'];
+    if (isDeep) {
+        headers.push('Severity');
+        headers.push('Patched');
+    }
+    headers.push('Advisory');
+
     const table = new Table({
-        head: ['Package', 'Version', 'Status', 'Patched', 'Advisory'],
+        head: headers,
         style: { head: ['cyan'] }
     });
 
@@ -19,35 +28,55 @@ export function generateReport(dependencies, results) {
                 vulnerabilityCount++;
                 const ids = result.vulns.map(v => v.id).join(', ');
 
-                // Find fixed versions
-                const fixedVersions = new Set();
-                result.vulns.forEach(vuln => {
-                    if (vuln.affected) {
-                        vuln.affected.forEach(affected => {
-                            if (affected.ranges) {
-                                affected.ranges.forEach(range => {
-                                    if (range.events) {
-                                        range.events.forEach(event => {
-                                            if (event.fixed) {
-                                                fixedVersions.add(event.fixed);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-
-                const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join(', ') : 'N/A';
-
-                table.push([
+                const row = [
                     chalk.red(pkgName),
                     pkgVersion,
-                    chalk.red('VULNERABLE'),
-                    chalk.green(patchedStr),
-                    chalk.red(ids)
-                ]);
+                    chalk.red('VULNERABLE')
+                ];
+
+                if (isDeep) {
+                    // Calculate Severity (Max)
+                    let maxSeverity = 'UNKNOWN';
+                    // Simple hack: check for CRITICAL, HIGH, MODERATE, LOW keywords if available
+                    // Or parse CVSS score.
+                    // OSV uses schema: severity: [ { type: 'CVSS_V3', score: '...' } ] or database_specific: { severity: 'MODERATE' }
+
+                    const severities = result.vulns.map(v => {
+                        if (v.database_specific && v.database_specific.severity) return v.database_specific.severity;
+                        return null;
+                    }).filter(Boolean);
+
+                    if (severities.length > 0) {
+                        maxSeverity = severities.join(', '); // Show all for now or optimize?
+                    }
+
+                    row.push(chalk.yellow(maxSeverity));
+
+                    // Find fixed versions
+                    const fixedVersions = new Set();
+                    result.vulns.forEach(vuln => {
+                        if (vuln.affected) {
+                            vuln.affected.forEach(affected => {
+                                if (affected.ranges) {
+                                    affected.ranges.forEach(range => {
+                                        if (range.events) {
+                                            range.events.forEach(event => {
+                                                if (event.fixed) {
+                                                    fixedVersions.add(event.fixed);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join(', ') : 'N/A';
+                    row.push(chalk.green(patchedStr));
+                }
+
+                row.push(chalk.red(ids));
+                table.push(row);
             }
         });
     }
@@ -56,6 +85,9 @@ export function generateReport(dependencies, results) {
         console.log(chalk.green('\n✅ No vulnerabilities found in dependencies.\n'));
     } else {
         console.log(chalk.red(`\n⚠️  Found ${vulnerabilityCount} vulnerabilities!\n`));
+        if (!isDeep) {
+            console.log(chalk.dim('(Run with --deep to see severity and patched versions)\n'));
+        }
         console.log(table.toString());
     }
 }

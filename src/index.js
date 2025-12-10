@@ -4,7 +4,17 @@ import { findPackageJson, parsePackageJson, findPackageLock, parsePackageLock } 
 import { checkVulnerabilities } from './checker.js';
 import { generateReport } from './reporter.js';
 
-export async function run() {
+export async function run(options = {}) {
+    console.log(chalk.bold.blue('npwned - Dependency Vulnerability Checker\n'));
+
+    // ... (spinner logic unchanged)
+
+    // ... (finding package logic unchanged)
+
+    // We need to re-read the file to match context carefully or just update specific lines.
+    // Since I am replacing a large chunk in previous thoughts, let's be precise here.
+    // I'll replace the function signature and the usage of checkVulnerabilities/generateReport.
+
     console.log(chalk.bold.blue('npwned - Dependency Vulnerability Checker\n'));
 
     const spinner = ora('Scanning for dependency files...').start();
@@ -49,9 +59,9 @@ export async function run() {
     const checkSpinner = ora(`Checking against OSV database...`).start();
 
     try {
-        const results = await checkVulnerabilities(pkgData.dependencies);
+        const results = await checkVulnerabilities(pkgData.dependencies, options);
         checkSpinner.stop();
-        generateReport(pkgData.dependencies, results);
+        generateReport(pkgData.dependencies, results, options);
     } catch (error) {
         checkSpinner.fail('Failed to check dependencies.');
         console.error(error);
