@@ -63,7 +63,8 @@ export function generateReport(dependencies, results, options = {}) {
                 }
 
                 // Determine Row Color
-                let rowColor = chalk.white; // Default
+                let rowColor = chalk.red; // Default to Red for VULNERABLE (Quick Mode)
+
                 if (maxSeverity.toUpperCase() === 'CRITICAL') rowColor = chalk.red;
                 else if (maxSeverity.toUpperCase() === 'HIGH') rowColor = chalk.hex('#FFA500'); // Orange
                 else if (maxSeverity.toUpperCase() === 'MODERATE') rowColor = chalk.magenta; // Pink-ish
