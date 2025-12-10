@@ -3,7 +3,7 @@ import Table from 'cli-table3';
 
 export function generateReport(dependencies, results) {
     const table = new Table({
-        head: ['Package', 'Version', 'Status', 'Advisory'],
+        head: ['Package', 'Version', 'Status', 'Patched', 'Advisory'],
         style: { head: ['cyan'] }
     });
 
@@ -18,10 +18,34 @@ export function generateReport(dependencies, results) {
             if (result && result.vulns && result.vulns.length > 0) {
                 vulnerabilityCount++;
                 const ids = result.vulns.map(v => v.id).join(', ');
+
+                // Find fixed versions
+                const fixedVersions = new Set();
+                result.vulns.forEach(vuln => {
+                    if (vuln.affected) {
+                        vuln.affected.forEach(affected => {
+                            if (affected.ranges) {
+                                affected.ranges.forEach(range => {
+                                    if (range.events) {
+                                        range.events.forEach(event => {
+                                            if (event.fixed) {
+                                                fixedVersions.add(event.fixed);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+                const patchedStr = fixedVersions.size > 0 ? Array.from(fixedVersions).join(', ') : 'N/A';
+
                 table.push([
                     chalk.red(pkgName),
                     pkgVersion,
                     chalk.red('VULNERABLE'),
+                    chalk.green(patchedStr),
                     chalk.red(ids)
                 ]);
             }
